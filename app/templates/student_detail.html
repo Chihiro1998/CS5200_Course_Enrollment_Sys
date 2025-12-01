@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Student Detail{% endblock %}
+
+{% block content %}
+<h2>Student Detail</h2>
+
+<p><strong>ID:</strong> {{ student[0] }}</p>
+<p><strong>Name:</strong> {{ student[1] }} {{ student[2] }}</p>
+<p><strong>Email:</strong> {{ student[3] }}</p>
+<p><strong>GPA:</strong> {{ student[4] if student[4] is not none else 'N/A' }}</p>
+
+<h3>Enrollments</h3>
+{% if enrollments %}
+<table border="1" cellpadding="5">
+  <tr>
+    <th>Course Code</th>
+    <th>Course Name</th>
+    <th>Term</th>
+    <th>Year</th>
+    <th>Status</th>
+    <th>Grade</th>
+  </tr>
+  {% for e in enrollments %}
+  <tr>
+    <td>{{ e[1] }}</td> {# course_code #}
+    <td>{{ e[2] }}</td> {# course_name #}
+    <td>{{ e[3] }}</td> {# term #}
+    <td>{{ e[4] }}</td> {# year #}
+    <td>{{ e[5] }}</td> {# status #}
+    <td>{{ e[6] if e[6] is not none else '-' }}</td> {# grade #}
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>This student has no enrollments yet.</p>
+{% endif %}
+{% endblock %}
