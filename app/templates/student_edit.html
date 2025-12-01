@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student{% endblock %}
+
+{% block content %}
+<h2>Edit Student</h2>
+
+<form method="POST">
+
+  <label>First Name:</label><br>
+  <input type="text" name="first_name" value="{{ student[1] }}" required><br><br>
+
+  <label>Last Name:</label><br>
+  <input type="text" name="last_name" value="{{ student[2] }}" required><br><br>
+
+  <label>Email:</label><br>
+  <input type="email" name="email" value="{{ student[3] }}" required><br><br>
+
+  <label>Enrollment Year:</label><br>
+  <input type="number" name="enrollment_year" value="{{ student[4] }}" required><br><br>
+
+  <label>Status:</label><br>
+  <select name="status">
+    <option value="Active" {% if student[6] == 'Active' %}selected{% endif %}>Active</option>
+    <option value="Inactive" {% if student[6] == 'Inactive' %}selected{% endif %}>Inactive</option>
+    <option value="Graduated" {% if student[6] == 'Graduated' %}selected{% endif %}>Graduated</option>
+  </select><br><br>
+
+  <label>Department:</label><br>
+  <select name="department_id" required>
+    {% for d in departments %}
+    <option value="{{ d[0] }}" {% if student[7] == d[0] %}selected{% endif %}>
+      {{ d[1] }}
+    </option>
+    {% endfor %}
+  </select><br><br>
+
+  <button type="submit">Save Changes</button>
+</form>
+
+<br>
+<a href="{{ url_for('main.student_detail', student_id=student[0]) }}">← Back</a>
+
+{% endblock %}

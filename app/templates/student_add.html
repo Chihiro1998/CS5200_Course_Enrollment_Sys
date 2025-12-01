@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Add Student{% endblock %}
+
+{% block content %}
+<h2>Add New Student</h2>
+
+<form method="POST">
+
+  <label>First Name:</label><br>
+  <input type="text" name="first_name" required><br><br>
+
+  <label>Last Name:</label><br>
+  <input type="text" name="last_name" required><br><br>
+
+  <label>Email:</label><br>
+  <input type="email" name="email" required><br><br>
+
+  <label>Enrollment Year:</label><br>
+  <input type="number" name="year" required><br><br>
+
+  <label>Department:</label><br>
+  <select name="department_id" required>
+    {% for d in departments %}
+    <option value="{{ d[0] }}">{{ d[1] }}</option>
+    {% endfor %}
+  </select>
+  <br><br>
+
+  <button type="submit">Add Student</button>
+</form>
+
+<br>
+<a href="{{ url_for('main.index') }}">&larr; Back to Student List</a>
+
+{% endblock %}

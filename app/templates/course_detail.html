@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Course Details{% endblock %}
+
+{% block content %}
+<h2>{{ course[2] }} ({{ course[1] }})</h2>
+
+<p><strong>Department:</strong> {{ course[6] }}</p>
+<p><strong>Instructor:</strong> {{ course[7] }}</p>
+<p><strong>Credits:</strong> {{ course[3] }}</p>
+<p><strong>Level:</strong> {{ course[4] }}</p>
+<p><strong>Capacity:</strong> {{ course[5] }}</p>
+
+<hr>
+
+<h3>Enrolled Students</h3>
+
+{% if enrollments %}
+<table border="1" cellpadding="6">
+  <tr>
+    <th>Student ID</th>
+    <th>Name</th>
+    <th>Status</th>
+    <th>Grade</th>
+  </tr>
+
+  {% for e in enrollments %}
+  <tr>
+    <td>{{ e[0] }}</td>
+    <td>
+      <a href="{{ url_for('main.student_detail', student_id=e[0]) }}">
+        {{ e[1] }}
+      </a>
+    </td>
+    <td>{{ e[2] }}</td>
+    <td>{{ e[3] if e[3] else '-' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% else %}
+<p>No students enrolled yet.</p>
+{% endif %}
+
+<br>
+<a href="{{ url_for('main.course_list') }}">&larr; Back to Courses</a>
+
+{% endblock %}

@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Student List{% endblock %}
+{% block title %}Students{% endblock %}
 
 {% block content %}
 <h2>Student List</h2>
 
+<p>
+  <a href="{{ url_for('main.add_student') }}">+ Add New Student</a>
+</p>
+
 <ul>
   {% for s in students %}
-  <!-- s[0]=id, s[1]=first_name, s[2]=last_name -->
   <li>
     <a href="{{ url_for('main.student_detail', student_id=s[0]) }}">
       {{ s[0] }} - {{ s[1] }} {{ s[2] }}
@@ -15,4 +18,8 @@
   </li>
   {% endfor %}
 </ul>
+
+
+
+
 {% endblock %}
