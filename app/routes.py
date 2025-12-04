@@ -250,3 +250,141 @@ def course_detail(course_id):
     return render_template("course_detail.html",
                            course=course,
                            enrollments=enrollments)
+
+# ============================
+# ADD COURSE
+# ============================
+
+
+@main.route("/courses/add", methods=["GET", "POST"])
+def add_course():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Load departments & instructors for dropdown
+    cur.execute("SELECT department_id, department_name FROM departments")
+    departments = cur.fetchall()
+
+    cur.execute(
+        "SELECT instructor_id, first_name || ' ' || last_name FROM instructors")
+    instructors = cur.fetchall()
+
+    if request.method == "POST":
+        code = request.form["course_code"]
+        name = request.form["course_name"]
+        credits = request.form["credits"]
+        level = request.form["level"]
+        capacity = request.form["capacity"]
+        dept_id = request.form["department_id"]
+        inst_id = request.form["instructor_id"]
+
+        if not code or not name or not credits or not dept_id or not inst_id:
+            flash("All required fields must be filled.", "error")
+            return render_template("course_add.html",
+                                   departments=departments,
+                                   instructors=instructors)
+
+        cur.execute("""
+            INSERT INTO courses (course_code, course_name, credits, level, capacity,
+                                 department_id, instructor_id, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'Active')
+        """, (code, name, credits, level, capacity, dept_id, inst_id))
+
+        conn.commit()
+        flash("Course added successfully!", "success")
+        return redirect(url_for("main.course_list"))
+
+    cur.close()
+    conn.close()
+    return render_template("course_add.html",
+                           departments=departments,
+                           instructors=instructors)
+
+# ============================
+# EDIT COURSE
+# ============================
+
+
+@main.route("/courses/edit/<int:course_id>", methods=["GET", "POST"])
+def edit_course(course_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Fetch course data
+    cur.execute("""
+        SELECT course_id, course_code, course_name, credits, level,
+               capacity, department_id, instructor_id
+        FROM courses
+        WHERE course_id = %s
+    """, (course_id,))
+    course = cur.fetchone()
+
+    if not course:
+        flash("Course not found.", "error")
+        return redirect(url_for("main.course_list"))
+
+    # Dropdown data
+    cur.execute("SELECT department_id, department_name FROM departments")
+    departments = cur.fetchall()
+
+    cur.execute(
+        "SELECT instructor_id, first_name || ' ' || last_name FROM instructors")
+    instructors = cur.fetchall()
+
+    if request.method == "POST":
+        code = request.form["course_code"]
+        name = request.form["course_name"]
+        credits = request.form["credits"]
+        level = request.form["level"]
+        capacity = request.form["capacity"]
+        dept_id = request.form["department_id"]
+        inst_id = request.form["instructor_id"]
+
+        if not code or not name or not credits:
+            flash("All fields are required.", "error")
+            return render_template("course_edit.html",
+                                   course=course,
+                                   departments=departments,
+                                   instructors=instructors)
+
+        cur.execute("""
+            UPDATE courses
+            SET course_code=%s, course_name=%s, credits=%s,
+                level=%s, capacity=%s, department_id=%s,
+                instructor_id=%s
+            WHERE course_id=%s
+        """, (code, name, credits, level, capacity, dept_id, inst_id, course_id))
+
+        conn.commit()
+        flash("Course updated successfully!", "success")
+        return redirect(url_for("main.course_detail", course_id=course_id))
+
+    cur.close()
+    conn.close()
+    return render_template("course_edit.html",
+                           course=course,
+                           departments=departments,
+                           instructors=instructors)
+
+# ============================
+# DELETE COURSE (SOFT DELETE)
+# ============================
+
+
+@main.route("/courses/<int:course_id>/delete", methods=["POST"])
+def delete_course(course_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE courses
+        SET status='Inactive'
+        WHERE course_id=%s
+    """, (course_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Course deleted successfully.", "success")
+    return redirect(url_for("main.course_list"))

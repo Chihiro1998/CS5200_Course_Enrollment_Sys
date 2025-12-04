@@ -3,33 +3,45 @@
 {% block title %}Course List{% endblock %}
 
 {% block content %}
-<h2>Course List</h2>
 
-<table border="1" cellpadding="8">
-  <tr>
-    <th>Course Code</th>
-    <th>Course Name</th>
-    <th>Credits</th>
-    <th>Capacity</th>
-    <th>Details</th>
-  </tr>
+<h2 class="mb-3">Course List</h2>
 
-  {% for c in courses %}
-  <tr>
-    <td>{{ c[1] }}</td>
-    <td>{{ c[2] }}</td>
-    <td>{{ c[3] }}</td>
-    <td>{{ c[4] }}</td>
-    <td>
-      <a href="{{ url_for('main.course_detail', course_id=c[0]) }}">
-        View
-      </a>
-    </td>
-  </tr>
-  {% endfor %}
+<a class="btn btn-success mb-3" href="{{ url_for('main.add_course') }}">
+  + Add New Course
+</a>
+
+<table class="table table-bordered table-striped">
+  <thead class="table-dark">
+    <tr>
+      <th>Code</th>
+      <th>Name</th>
+      <th>Credits</th>
+      <th>Capacity</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for c in courses %}
+    <tr>
+      <td>{{ c[1] }}</td>
+      <td>{{ c[2] }}</td>
+      <td>{{ c[3] }}</td>
+      <td>{{ c[4] }}</td>
+
+      <td>
+        <a href="{{ url_for('main.course_detail', course_id=c[0]) }}" class="btn btn-info btn-sm">View</a>
+
+        <a href="{{ url_for('main.edit_course', course_id=c[0]) }}" class="btn btn-warning btn-sm">Edit</a>
+
+        <a href="{{ url_for('main.delete_course', course_id=c[0]) }}" class="btn btn-danger btn-sm"
+          onclick="return confirm('Are you sure?')">
+          Delete
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
-
-<br>
-<a href="{{ url_for('main.index') }}">&larr; Back to Student List</a>
 
 {% endblock %}
