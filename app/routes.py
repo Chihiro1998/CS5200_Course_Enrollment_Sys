@@ -168,8 +168,9 @@ def delete_student(student_id):
     flash("Student has been deactivated (soft delete).", "success")
     return redirect(url_for("main.index"))
 
+
 # =====================================================
-# ENROLLMENT ROUTES (Add Enrollment)
+# ENROLLMENT ROUTES
 # =====================================================
 
 
@@ -190,9 +191,9 @@ def enroll_page(student_id):
     if not student:
         abort(404)
 
-    # 2. Get active courses
+    # 2. Get active courses (WITH credits & capacity)
     cur.execute("""
-        SELECT course_id, course_code, course_name
+        SELECT course_id, course_code, course_name, credits, capacity
         FROM courses
         WHERE status = 'Active'
         ORDER BY course_code
@@ -235,10 +236,12 @@ def enroll_submit(student_id):
         conn.commit()
         flash("Enrollment added successfully!", "success")
 
-    except Exception as e:
+    except Exception:
         conn.rollback()
         flash(
-            "Error: student is already enrolled in this course for that semester.", "danger")
+            "Error: student is already enrolled in this course for that semester.",
+            "danger",
+        )
 
     cur.close()
     conn.close()
@@ -248,6 +251,7 @@ def enroll_submit(student_id):
 
 @main.route("/enrollments")
 def enrollment_list():
+    """Admin view: all enrollments"""
     conn = get_db_connection()
     cur = conn.cursor()
 
