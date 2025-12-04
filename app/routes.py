@@ -168,10 +168,116 @@ def delete_student(student_id):
     flash("Student has been deactivated (soft delete).", "success")
     return redirect(url_for("main.index"))
 
+# =====================================================
+# ENROLLMENT ROUTES (Add Enrollment)
+# =====================================================
+
+
+@main.route("/students/<int:student_id>/enroll", methods=["GET"])
+def enroll_page(student_id):
+    """Show enrollment form for a student"""
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 1. Confirm student exists
+    cur.execute("""
+        SELECT student_id, first_name, last_name
+        FROM students
+        WHERE student_id = %s
+    """, (student_id,))
+    student = cur.fetchone()
+    if not student:
+        abort(404)
+
+    # 2. Get active courses
+    cur.execute("""
+        SELECT course_id, course_code, course_name
+        FROM courses
+        WHERE status = 'Active'
+        ORDER BY course_code
+    """)
+    courses = cur.fetchall()
+
+    # 3. Get semesters list
+    cur.execute("""
+        SELECT semester_id, term, year
+        FROM semesters
+        ORDER BY year DESC, term DESC
+    """)
+    semesters = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("enroll_add.html",
+                           student=student,
+                           courses=courses,
+                           semesters=semesters)
+
+
+@main.route("/students/<int:student_id>/enroll", methods=["POST"])
+def enroll_submit(student_id):
+    """Submit enrollment creation request"""
+
+    course_id = request.form["course_id"]
+    semester_id = request.form["semester_id"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            INSERT INTO enrollments (student_id, course_id, semester_id, status)
+            VALUES (%s, %s, %s, 'Enrolled')
+        """, (student_id, course_id, semester_id))
+
+        conn.commit()
+        flash("Enrollment added successfully!", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(
+            "Error: student is already enrolled in this course for that semester.", "danger")
+
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("main.student_detail", student_id=student_id))
+
+
+@main.route("/enrollments")
+def enrollment_list():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT 
+            e.enrollment_id,
+            s.student_id,
+            s.first_name || ' ' || s.last_name AS student_name,
+            c.course_id,
+            c.course_code,
+            c.course_name,
+            e.status,
+            e.grade
+        FROM enrollments e
+        JOIN students s ON e.student_id = s.student_id
+        JOIN courses c ON e.course_id = c.course_id
+        ORDER BY e.enrollment_id;
+    """)
+
+    enrollments = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("enrollment_list.html", enrollments=enrollments)
+
 
 # =====================================================
 # COURSE ROUTES
 # =====================================================
+
 
 @main.route("/courses")
 def course_list():

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Add Enrollment{% endblock %}
+
+{% block content %}
+<h2>Enroll Student</h2>
+
+<p><strong>Student:</strong> {{ student[1] }} {{ student[2] }} (ID: {{ student[0] }})</p>
+
+<form method="POST">
+  <div class="mb-3">
+    <label class="form-label">Course</label>
+    <select class="form-select" name="course_id" required>
+      <option value="">Select a course</option>
+      {% for c in courses %}
+      <option value="{{ c[0] }}">{{ c[1] }} - {{ c[2] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Semester</label>
+    <select class="form-select" name="semester_id" required>
+      <option value="">Select a semester</option>
+      {% for s in semesters %}
+      <option value="{{ s[0] }}">{{ s[1] }} {{ s[2] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Confirm Enrollment</button>
+
+  <a href="{{ url_for('main.student_detail', student_id=student[0]) }}" class="btn btn-secondary">Cancel</a>
+</form>
+
+{% endblock %}
