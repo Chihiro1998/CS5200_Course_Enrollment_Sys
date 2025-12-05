@@ -1,46 +1,87 @@
 {% extends "base.html" %}
-
 {% block title %}Student Detail{% endblock %}
 
 {% block content %}
-<h2>Student Detail</h2>
 
-<p><strong>ID:</strong> {{ student[0] }}</p>
-<p><strong>Name:</strong> {{ student[1] }} {{ student[2] }}</p>
-<p><strong>Email:</strong> {{ student[3] }}</p>
-<p><strong>Enrollment Year:</strong> {{ student[4] }}</p>
-<p><strong>GPA:</strong> {{ student[5] if student[5] is not none else 'N/A' }}</p>
-<p><strong>Status:</strong> {{ student[6] }}</p>
-<p><strong>Department:</strong> {{ student[7] }}</p>
-<a href="{{ url_for('main.edit_student', student_id=student[0]) }}">Edit Info</a>
+<div class="card shadow p-4">
 
-<h3>Enrollments</h3>
+  <!-- =============================== -->
+  <!-- Student Basic Info -->
+  <!-- =============================== -->
+  <h2 class="mb-3">Student Detail</h2>
 
-<a class="btn btn-primary mb-3" href="{{ url_for('main.enroll_page', student_id=student[0]) }}">
-  + Enroll This Student
-</a>
-{% if enrollments %}
-<table border="1" cellpadding="5">
-  <tr>
-    <th>Course Code</th>
-    <th>Course Name</th>
-    <th>Term</th>
-    <th>Year</th>
-    <th>Status</th>
-    <th>Grade</th>
-  </tr>
-  {% for e in enrollments %}
-  <tr>
-    <td>{{ e[1] }}</td> {# course_code #}
-    <td>{{ e[2] }}</td> {# course_name #}
-    <td>{{ e[3] }}</td> {# term #}
-    <td>{{ e[4] }}</td> {# year #}
-    <td>{{ e[5] }}</td> {# status #}
-    <td>{{ e[6] if e[6] is not none else '-' }}</td> {# grade #}
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>This student has no enrollments yet.</p>
-{% endif %}
+  <ul class="list-group mb-4">
+    <li class="list-group-item">
+      <strong>ID:</strong> {{ student.student_id }}
+    </li>
+    <li class="list-group-item">
+      <strong>Name:</strong> {{ student.first_name }} {{ student.last_name }}
+    </li>
+    <li class="list-group-item">
+      <strong>Email:</strong> {{ student.email }}
+    </li>
+    <li class="list-group-item">
+      <strong>Enrollment Year:</strong> {{ student.enrollment_year }}
+    </li>
+    <li class="list-group-item">
+      <strong>GPA:</strong>
+      {{ student.gpa if student.gpa is not none else 'N/A' }}
+    </li>
+    <li class="list-group-item">
+      <strong>Status:</strong> {{ student.status }}
+    </li>
+    <li class="list-group-item">
+      <strong>Department:</strong> {{ student.department_name }}
+    </li>
+  </ul>
+
+  <!-- Action Buttons -->
+  <div class="mb-4">
+    <a href="{{ url_for('main.edit_student', student_id=student.student_id) }}" class="btn btn-warning btn-sm">
+      Edit Student Info
+    </a>
+  </div>
+
+  <!-- =============================== -->
+  <!-- Enrollments -->
+  <!-- =============================== -->
+  <h3 class="mb-3">Enrollments</h3>
+
+  <a class="btn btn-primary mb-3" href="{{ url_for('main.enroll_page', student_id=student.student_id) }}">
+    + Enroll This Student
+  </a>
+
+  {% if enrollments %}
+  <table class="table table-bordered table-striped">
+    <thead class="table-dark">
+      <tr>
+        <th>Course Code</th>
+        <th>Course Name</th>
+        <th>Term</th>
+        <th>Year</th>
+        <th>Status</th>
+        <th>Grade</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for e in enrollments %}
+      <tr>
+        <td>{{ e.course_code }}</td>
+        <td>{{ e.course_name }}</td>
+        <td>{{ e.term }}</td>
+        <td>{{ e.year }}</td>
+        <td>{{ e.status }}</td>
+        <td>{{ e.grade if e.grade is not none else '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <p class="text-muted">This student has no enrollments yet.</p>
+  {% endif %}
+
+</div>
+
 {% endblock %}

@@ -9,11 +9,11 @@
 
   <!-- Student Info -->
   <div class="alert alert-secondary">
-    <strong>Student:</strong> {{ student[1] }} {{ student[2] }}
-    <span class="text-muted">(ID: {{ student[0] }})</span>
+    <strong>Student:</strong> {{ student.first_name }} {{ student.last_name }}
+    <span class="text-muted">(ID: {{ student.student_id }})</span>
   </div>
 
-  <form method="POST" action="{{ url_for('main.enroll_submit', student_id=student[0]) }}">
+  <form method="POST" action="{{ url_for('main.enroll_submit', student_id=student.student_id) }}">
 
     <!-- Course Selection -->
     <div class="mb-3">
@@ -22,9 +22,9 @@
         <option value="">-- Choose a Course --</option>
 
         {% for c in courses %}
-        <option value="{{ c[0] }}">
-          {{ c[1] }} - {{ c[2] }}
-          (Credits: {{ c[3] }}, {{ c[5] }}/{{ c[4] }} enrolled)
+        <option value="{{ c.course_id }}">
+          {{ c.course_code }} - {{ c.course_name }}
+          (Credits: {{ c.credits }}, {{ c.enrolled }}/{{ c.capacity }} enrolled)
         </option>
         {% endfor %}
       </select>
@@ -37,8 +37,8 @@
         <option value="">-- Choose a Semester --</option>
 
         {% for s in semesters %}
-        <option value="{{ s[0] }}">
-          {{ s[1] }} {{ s[2] }}
+        <option value="{{ s.semester_id }}">
+          {{ s.term }} {{ s.year }}
         </option>
         {% endfor %}
       </select>
@@ -50,7 +50,7 @@
         ✓ Confirm Enrollment
       </button>
 
-      <a href="{{ url_for('main.student_detail', student_id=student[0]) }}" class="btn btn-secondary ms-2">
+      <a href="{{ url_for('main.student_detail', student_id=student.student_id) }}" class="btn btn-secondary ms-2">
         Cancel
       </a>
     </div>

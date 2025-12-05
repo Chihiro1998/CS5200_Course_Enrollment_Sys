@@ -2,34 +2,42 @@
 {% block title %}Add Student{% endblock %}
 
 {% block content %}
-<h2>Add New Student</h2>
+<h2 class="mb-4">Add New Student</h2>
 
 <form method="POST">
 
-  <label>First Name:</label><br>
-  <input type="text" name="first_name" required><br><br>
+  <div class="mb-3">
+    <label class="form-label">First Name</label>
+    <input type="text" name="first_name" class="form-control" required>
+  </div>
 
-  <label>Last Name:</label><br>
-  <input type="text" name="last_name" required><br><br>
+  <div class="mb-3">
+    <label class="form-label">Last Name</label>
+    <input type="text" name="last_name" class="form-control" required>
+  </div>
 
-  <label>Email:</label><br>
-  <input type="email" name="email" required><br><br>
+  <div class="mb-3">
+    <label class="form-label">Email</label>
+    <input type="email" name="email" class="form-control" required>
+  </div>
 
-  <label>Enrollment Year:</label><br>
-  <input type="number" name="year" required><br><br>
+  <div class="mb-3">
+    <label class="form-label">Enrollment Year</label>
+    <input type="number" name="enrollment_year" class="form-control" required>
+  </div>
 
-  <label>Department:</label><br>
-  <select name="department_id" required>
-    {% for d in departments %}
-    <option value="{{ d[0] }}">{{ d[1] }}</option>
-    {% endfor %}
-  </select>
-  <br><br>
+  <div class="mb-3">
+    <label class="form-label">Department</label>
+    <select name="department_id" class="form-select" required>
+      {% for d in departments %}
+      <option value="{{ d.department_id }}">{{ d.department_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
-  <button type="submit">Add Student</button>
+  <button class="btn btn-primary">Add Student</button>
+  <a href="{{ url_for('main.index') }}" class="btn btn-secondary ms-2">Cancel</a>
+
 </form>
-
-<br>
-<a href="{{ url_for('main.index') }}">&larr; Back to Student List</a>
 
 {% endblock %}

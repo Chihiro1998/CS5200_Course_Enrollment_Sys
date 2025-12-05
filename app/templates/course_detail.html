@@ -5,32 +5,48 @@
 {% block content %}
 
 <h2 class="mb-3">
-  {{ course[2] }}
-  <span class="text-muted">({{ course[1] }})</span>
+  {{ course.course_name }}
+  <span class="text-muted">({{ course.course_code }})</span>
 </h2>
 
 <div class="mb-3">
-  <a href="{{ url_for('main.edit_course', course_id=course[0]) }}" class="btn btn-warning btn-sm">
+  <a href="{{ url_for('main.edit_course', course_id=course.course_id) }}" class="btn btn-warning btn-sm">
     Edit Course
   </a>
 
-  <a href="{{ url_for('main.delete_course', course_id=course[0]) }}" class="btn btn-danger btn-sm ms-2"
+  <a href="{{ url_for('main.delete_course', course_id=course.course_id) }}" class="btn btn-danger btn-sm ms-2"
     onclick="return confirm('Are you sure you want to delete this course?');">
     Delete Course
   </a>
 </div>
 
 <ul class="list-group mb-4">
-  <li class="list-group-item"><strong>Department:</strong> {{ course[6] }}</li>
-  <li class="list-group-item"><strong>Instructor:</strong> {{ course[7] }}</li>
-  <li class="list-group-item"><strong>Credits:</strong> {{ course[3] }}</li>
-  <li class="list-group-item"><strong>Level:</strong> {{ course[4] }}</li>
-  <li class="list-group-item"><strong>Capacity:</strong> {{ course[5] }}</li>
+
+  <li class="list-group-item">
+    <strong>Department:</strong> {{ course.department_name }}
+  </li>
+
+  <li class="list-group-item">
+    <strong>Instructor:</strong> {{ course.instructor_name }}
+  </li>
+
+  <li class="list-group-item">
+    <strong>Credits:</strong> {{ course.credits }}
+  </li>
+
+  <li class="list-group-item">
+    <strong>Level:</strong> {{ course.level }}
+  </li>
+
+  <li class="list-group-item">
+    <strong>Capacity:</strong> {{ course.capacity }}
+  </li>
+
   <li class="list-group-item">
     <strong>Enrollment:</strong>
-    {{ course[8] }}/{{ course[5] }}
+    {{ course.enrolled_count }}/{{ course.capacity }}
 
-    {% if course[8] >= course[5] %}
+    {% if course.enrolled_count >= course.capacity %}
     <span class="badge bg-danger ms-2">Full</span>
     {% endif %}
   </li>
@@ -53,14 +69,17 @@
   <tbody>
     {% for e in enrollments %}
     <tr>
-      <td>{{ e[0] }}</td>
+      <td>{{ e.student_id }}</td>
+
       <td>
-        <a href="{{ url_for('main.student_detail', student_id=e[0]) }}">
-          {{ e[1] }}
+        <a href="{{ url_for('main.student_detail', student_id=e.student_id) }}">
+          {{ e.student_name }}
         </a>
       </td>
-      <td>{{ e[2] }}</td>
-      <td>{{ e[3] if e[3] else '-' }}</td>
+
+      <td>{{ e.status }}</td>
+
+      <td>{{ e.grade if e.grade else '-' }}</td>
     </tr>
     {% endfor %}
   </tbody>

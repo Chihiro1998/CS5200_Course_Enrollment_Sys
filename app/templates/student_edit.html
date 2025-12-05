@@ -1,44 +1,69 @@
 {% extends "base.html" %}
-
 {% block title %}Edit Student{% endblock %}
 
 {% block content %}
-<h2>Edit Student</h2>
 
-<form method="POST">
+<div class="card shadow p-4">
 
-  <label>First Name:</label><br>
-  <input type="text" name="first_name" value="{{ student[1] }}" required><br><br>
+  <h2 class="mb-4">Edit Student Information</h2>
 
-  <label>Last Name:</label><br>
-  <input type="text" name="last_name" value="{{ student[2] }}" required><br><br>
+  <form method="POST">
 
-  <label>Email:</label><br>
-  <input type="email" name="email" value="{{ student[3] }}" required><br><br>
+    <!-- First Name -->
+    <div class="mb-3">
+      <label class="form-label">First Name</label>
+      <input type="text" class="form-control" name="first_name" value="{{ student.first_name }}" required>
+    </div>
 
-  <label>Enrollment Year:</label><br>
-  <input type="number" name="enrollment_year" value="{{ student[4] }}" required><br><br>
+    <!-- Last Name -->
+    <div class="mb-3">
+      <label class="form-label">Last Name</label>
+      <input type="text" class="form-control" name="last_name" value="{{ student.last_name }}" required>
+    </div>
 
-  <label>Status:</label><br>
-  <select name="status">
-    <option value="Active" {% if student[6] == 'Active' %}selected{% endif %}>Active</option>
-    <option value="Inactive" {% if student[6] == 'Inactive' %}selected{% endif %}>Inactive</option>
-    <option value="Graduated" {% if student[6] == 'Graduated' %}selected{% endif %}>Graduated</option>
-  </select><br><br>
+    <!-- Email -->
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" name="email" value="{{ student.email }}" required>
+    </div>
 
-  <label>Department:</label><br>
-  <select name="department_id" required>
-    {% for d in departments %}
-    <option value="{{ d[0] }}" {% if student[7] == d[0] %}selected{% endif %}>
-      {{ d[1] }}
-    </option>
-    {% endfor %}
-  </select><br><br>
+    <!-- Enrollment Year -->
+    <div class="mb-3">
+      <label class="form-label">Enrollment Year</label>
+      <input type="number" class="form-control" name="enrollment_year" value="{{ student.enrollment_year }}" required>
+    </div>
 
-  <button type="submit">Save Changes</button>
-</form>
+    <!-- Status selection -->
+    <div class="mb-3">
+      <label class="form-label">Status</label>
+      <select class="form-select" name="status">
+        <option value="Active" {% if student.status == "Active" %}selected{% endif %}>Active</option>
+        <option value="Inactive" {% if student.status == "Inactive" %}selected{% endif %}>Inactive</option>
+        <option value="Graduated" {% if student.status == "Graduated" %}selected{% endif %}>Graduated</option>
+      </select>
+    </div>
 
-<br>
-<a href="{{ url_for('main.student_detail', student_id=student[0]) }}">← Back</a>
+    <!-- Department selection -->
+    <div class="mb-3">
+      <label class="form-label">Department</label>
+      <select class="form-select" name="department_id" required>
+        {% for d in departments %}
+        <option value="{{ d.department_id }}" {% if student.department_id == d.department_id %}selected{% endif %}>
+          {{ d.department_name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Buttons -->
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+
+    <a href="{{ url_for('main.student_detail', student_id=student.student_id) }}" class="btn btn-secondary ms-2">
+      Cancel
+    </a>
+
+  </form>
+
+</div>
 
 {% endblock %}

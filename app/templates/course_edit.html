@@ -8,54 +8,63 @@
 
 <form method="POST">
 
+  <!-- Course Code -->
   <div class="mb-3">
     <label class="form-label">Course Code</label>
-    <input type="text" name="course_code" class="form-control" value="{{ course[1] }}" required>
+    <input type="text" name="course_code" class="form-control" value="{{ course.course_code }}" required>
   </div>
 
+  <!-- Course Name -->
   <div class="mb-3">
     <label class="form-label">Course Name</label>
-    <input type="text" name="course_name" class="form-control" value="{{ course[2] }}" required>
+    <input type="text" name="course_name" class="form-control" value="{{ course.course_name }}" required>
   </div>
 
+  <!-- Credits -->
   <div class="mb-3">
     <label class="form-label">Credits</label>
-    <input type="number" name="credits" class="form-control" value="{{ course[3] }}" required>
+    <input type="number" name="credits" class="form-control" value="{{ course.credits }}" required>
   </div>
 
+  <!-- Level -->
   <div class="mb-3">
     <label class="form-label">Level</label>
-    <input type="text" name="level" class="form-control" value="{{ course[4] }}">
+    <input type="text" name="level" class="form-control" value="{{ course.level }}">
   </div>
 
+  <!-- Capacity -->
   <div class="mb-3">
     <label class="form-label">Capacity</label>
-    <input type="number" name="capacity" class="form-control" value="{{ course[5] }}" required>
+    <input type="number" name="capacity" class="form-control" value="{{ course.capacity }}" required>
   </div>
 
+  <!-- Department Dropdown -->
   <div class="mb-3">
     <label class="form-label">Department</label>
     <select name="department_id" class="form-select">
       {% for d in departments %}
-      <option value="{{ d[0] }}" {% if d[0] == course[8] %} selected {% endif %}>
-        {{ d[1] }}
+      <option value="{{ d.department_id }}" {% if d.department_id == course.department_id %}selected{% endif %}>
+        {{ d.department_name }}
       </option>
       {% endfor %}
     </select>
   </div>
 
+  <!-- Instructor Dropdown -->
   <div class="mb-3">
     <label class="form-label">Instructor</label>
     <select name="instructor_id" class="form-select">
       {% for i in instructors %}
-      <option value="{{ i[0] }}" {% if i[0] == course[9] %} selected {% endif %}>
-        {{ i[1] }}
+      <option value="{{ i.instructor_id }}" {% if i.instructor_id == course.instructor_id %}selected{% endif %}>
+        {{ i.first_name }} {{ i.last_name }}
       </option>
       {% endfor %}
     </select>
   </div>
 
+  <!-- Submit Button -->
   <button class="btn btn-primary">Save Changes</button>
+
 </form>
 
 {% endblock %}
