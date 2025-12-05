@@ -26,6 +26,15 @@
   <li class="list-group-item"><strong>Credits:</strong> {{ course[3] }}</li>
   <li class="list-group-item"><strong>Level:</strong> {{ course[4] }}</li>
   <li class="list-group-item"><strong>Capacity:</strong> {{ course[5] }}</li>
+  <li class="list-group-item">
+    <strong>Enrollment:</strong>
+    {{ course[8] }}/{{ course[5] }}
+
+    {% if course[8] >= course[5] %}
+    <span class="badge bg-danger ms-2">Full</span>
+    {% endif %}
+  </li>
+
 </ul>
 
 <h3>Enrolled Students</h3>

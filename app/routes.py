@@ -357,20 +357,34 @@ def course_detail(course_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Fetch course info WITH enrolled count
     cur.execute("""
-        SELECT c.course_id, c.course_code, c.course_name, c.credits,
-               c.level, c.capacity, d.department_name,
-               i.first_name || ' ' || i.last_name AS instructor_name
+        SELECT 
+            c.course_id,
+            c.course_code,
+            c.course_name,
+            c.credits,
+            c.level,
+            c.capacity,
+            d.department_name,
+            i.first_name || ' ' || i.last_name AS instructor_name,
+            (
+                SELECT COUNT(*)
+                FROM enrollments e
+                WHERE e.course_id = c.course_id AND e.status = 'Enrolled'
+            ) AS enrolled_count
         FROM courses c
         JOIN departments d ON c.department_id = d.department_id
         JOIN instructors i ON c.instructor_id = i.instructor_id
         WHERE c.course_id=%s
     """, (course_id,))
+
     course = cur.fetchone()
 
     if not course:
         abort(404)
 
+    # Fetch enrollment list
     cur.execute("""
         SELECT s.student_id,
                s.first_name || ' ' || s.last_name AS student_name,
@@ -385,9 +399,11 @@ def course_detail(course_id):
     cur.close()
     conn.close()
 
-    return render_template("course_detail.html",
-                           course=course,
-                           enrollments=enrollments)
+    return render_template(
+        "course_detail.html",
+        course=course,
+        enrollments=enrollments
+    )
 
 
 @main.route("/courses/add", methods=["GET", "POST"])

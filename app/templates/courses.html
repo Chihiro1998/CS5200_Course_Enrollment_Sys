@@ -27,7 +27,13 @@
       <td>{{ c[1] }}</td>
       <td>{{ c[2] }}</td>
       <td>{{ c[3] }}</td>
-      <td>{{ c[5] }}/{{ c[4] }}</td>
+      <td class="
+    {% if c[5] >= c[4] %}
+        text-danger fw-bold
+    {% endif %}
+">
+        {{ c[5] }}/{{ c[4] }}
+      </td>
 
 
       <td>
