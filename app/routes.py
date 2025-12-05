@@ -526,29 +526,26 @@ def enroll_submit(student_id):
 # -----------------------------
 @main.route("/enrollments")
 def enrollment_list():
-
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT 
             e.enrollment_id,
+            e.student_id,
             s.first_name || ' ' || s.last_name AS student_name,
+            e.course_id,
             c.course_code,
             c.course_name,
-            sm.term,
-            sm.year,
             e.status,
             e.grade
         FROM enrollments e
         JOIN students s ON e.student_id = s.student_id
         JOIN courses c ON e.course_id = c.course_id
-        JOIN semesters sm ON e.semester_id = sm.semester_id
-        ORDER BY sm.year DESC, sm.term DESC
+        ORDER BY e.enrollment_id;
     """)
 
     enrollments = cur.fetchall()
-
     cur.close()
     conn.close()
 
