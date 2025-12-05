@@ -181,26 +181,38 @@ def enroll_page(student_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # 1. Confirm student exists
+    # Get student info
     cur.execute("""
         SELECT student_id, first_name, last_name
         FROM students
         WHERE student_id = %s
     """, (student_id,))
     student = cur.fetchone()
+
     if not student:
         abort(404)
 
-    # 2. Get active courses (WITH credits & capacity)
+    # Get active courses WITH enrolled count
     cur.execute("""
-        SELECT course_id, course_code, course_name, credits, capacity
-        FROM courses
-        WHERE status = 'Active'
-        ORDER BY course_code
+        SELECT 
+            c.course_id,
+            c.course_code,
+            c.course_name,
+            c.credits,
+            c.capacity,
+            (
+                SELECT COUNT(*) 
+                FROM enrollments e 
+                WHERE e.course_id = c.course_id 
+                  AND e.status = 'Enrolled'
+            ) AS enrolled_count
+        FROM courses c
+        WHERE c.status = 'Active'
+        ORDER BY c.course_code
     """)
     courses = cur.fetchall()
 
-    # 3. Get semesters list
+    # Get semesters list
     cur.execute("""
         SELECT semester_id, term, year
         FROM semesters
@@ -226,6 +238,27 @@ def enroll_submit(student_id):
     cur = conn.cursor()
 
     try:
+        # ==================================================
+        # Capacity Check BEFORE insert
+        # ==================================================
+        cur.execute("""
+            SELECT capacity,
+                   (SELECT COUNT(*) 
+                    FROM enrollments 
+                    WHERE course_id = %s AND status = 'Enrolled') AS current_count
+            FROM courses
+            WHERE course_id = %s
+        """, (course_id, course_id))
+
+        capacity, current_count = cur.fetchone()
+
+        if current_count >= capacity:
+            flash("Error: Course is full. Enrollment cannot be completed.", "danger")
+            return redirect(url_for("main.enroll_page", student_id=student_id))
+
+        # ==================================================
+        # Try inserting enrollment
+        # ==================================================
         cur.execute("""
             INSERT INTO enrollments (student_id, course_id, semester_id, status)
             VALUES (%s, %s, %s, 'Enrolled')
@@ -240,17 +273,14 @@ def enroll_submit(student_id):
 
         error_msg = str(e)
 
+        # Duplicate enrollment constraint
         if "idx_unique_active_enrollment" in error_msg or "duplicate key" in error_msg:
             flash(
                 "Error: Student is already enrolled in this course for this semester.", "danger")
 
-        elif "is full" in error_msg:
-            flash("Error: Course is full. Enrollment cannot be completed.", "danger")
-
         else:
             flash("Unexpected error occurred. Please try again.", "danger")
 
-        # ❗ FIXED HERE
         return redirect(url_for("main.enroll_page", student_id=student_id))
 
     finally:
@@ -294,17 +324,27 @@ def enrollment_list():
 
 @main.route("/courses")
 def course_list():
-    """Course list page"""
     conn = get_db_connection()
     cur = conn.cursor()
+
     cur.execute("""
-        SELECT course_id, course_code, course_name,
-               credits, capacity
-        FROM courses
-        WHERE status='Active'
-        ORDER BY course_code
+        SELECT
+            c.course_id,
+            c.course_code,
+            c.course_name,
+            c.credits,
+            c.capacity,
+            (
+                SELECT COUNT(*)
+                FROM enrollments e
+                WHERE e.course_id = c.course_id AND e.status = 'Enrolled'
+            ) AS enrolled_count
+        FROM courses c
+        ORDER BY c.course_code
     """)
+
     courses = cur.fetchall()
+
     cur.close()
     conn.close()
 
