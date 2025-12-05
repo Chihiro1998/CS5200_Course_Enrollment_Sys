@@ -217,10 +217,8 @@ def enroll_page(student_id):
                            semesters=semesters)
 
 
-@main.route("/students/<int:student_id>/enroll", methods=["POST"])
+@main.route("/students/<int:student_id>/enroll/submit", methods=["POST"])
 def enroll_submit(student_id):
-    """Submit enrollment creation request"""
-
     course_id = request.form["course_id"]
     semester_id = request.form["semester_id"]
 
@@ -235,18 +233,29 @@ def enroll_submit(student_id):
 
         conn.commit()
         flash("Enrollment added successfully!", "success")
+        return redirect(url_for("main.student_detail", student_id=student_id))
 
-    except Exception:
+    except Exception as e:
         conn.rollback()
-        flash(
-            "Error: student is already enrolled in this course for that semester.",
-            "danger",
-        )
 
-    cur.close()
-    conn.close()
+        error_msg = str(e)
 
-    return redirect(url_for("main.student_detail", student_id=student_id))
+        if "idx_unique_active_enrollment" in error_msg or "duplicate key" in error_msg:
+            flash(
+                "Error: Student is already enrolled in this course for this semester.", "danger")
+
+        elif "is full" in error_msg:
+            flash("Error: Course is full. Enrollment cannot be completed.", "danger")
+
+        else:
+            flash("Unexpected error occurred. Please try again.", "danger")
+
+        # ❗ FIXED HERE
+        return redirect(url_for("main.enroll_page", student_id=student_id))
+
+    finally:
+        cur.close()
+        conn.close()
 
 
 @main.route("/enrollments")

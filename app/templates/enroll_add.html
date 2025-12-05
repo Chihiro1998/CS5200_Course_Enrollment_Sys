@@ -13,7 +13,7 @@
     <span class="text-muted">(ID: {{ student[0] }})</span>
   </div>
 
-  <form method="POST">
+  <form method="POST" action="{{ url_for('main.enroll_submit', student_id=student[0]) }}">
 
     <!-- Course Selection -->
     <div class="mb-3">
