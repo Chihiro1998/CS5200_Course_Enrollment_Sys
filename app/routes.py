@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from .models import get_db_connection
+from datetime import datetime
 import psycopg2.extras
 
 main = Blueprint("main", __name__)
@@ -137,26 +138,54 @@ def edit_student(student_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    current_year = datetime.now().year  # <-- define once here
+
+    # -----------------------
+    # POST — save changes
+    # -----------------------
     if request.method == "POST":
-        first = request.form["first_name"]
-        last = request.form["last_name"]
-        email = request.form["email"]
+        first = request.form["first_name"].strip()
+        last = request.form["last_name"].strip()
+        email = request.form["email"].strip()
         dept = request.form["department_id"]
         year = request.form["enrollment_year"]
         status = request.form["status"]
 
-        cur.execute("""
-            UPDATE students
-            SET first_name=%s, last_name=%s, email=%s,
-                department_id=%s, enrollment_year=%s, status=%s
-            WHERE student_id=%s
-        """, (first, last, email, dept, year, status, student_id))
+        # validate year
+        if not year.isdigit() or int(year) > current_year:
+            flash(f"Enrollment year cannot exceed {current_year}.", "danger")
+            return redirect(url_for("main.edit_student", student_id=student_id))
 
-        conn.commit()
-        flash("Student updated successfully!", "success")
-        return redirect(url_for("main.student_detail", student_id=student_id))
+        # validate name
+        if not first or not last:
+            flash("First and last name are required.", "danger")
+            return redirect(url_for("main.edit_student", student_id=student_id))
 
-    # load student
+        # validate email
+        if not email:
+            flash("Email cannot be empty.", "danger")
+            return redirect(url_for("main.edit_student", student_id=student_id))
+
+        try:
+            cur.execute("""
+                UPDATE students
+                SET first_name=%s, last_name=%s, email=%s,
+                    department_id=%s, enrollment_year=%s, status=%s
+                WHERE student_id=%s
+            """, (first, last, email, dept, year, status, student_id))
+
+            conn.commit()
+            flash("Student updated successfully!", "success")
+            return redirect(url_for("main.student_detail", student_id=student_id))
+
+        except psycopg2.errors.UniqueViolation:
+            conn.rollback()
+            flash("Email already exists. Please use another one.", "danger")
+            return redirect(url_for("main.edit_student", student_id=student_id))
+
+    # -----------------------
+    # GET — load initial data
+    # -----------------------
     cur.execute("""
         SELECT student_id, first_name, last_name, email,
                enrollment_year, gpa, status, department_id
@@ -165,14 +194,18 @@ def edit_student(student_id):
     """, (student_id,))
     student = cur.fetchone()
 
-    # load departments
     cur.execute("SELECT department_id, department_name FROM departments")
     departments = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template("student_edit.html", student=student, departments=departments)
+    return render_template(
+        "student_edit.html",
+        student=student,
+        departments=departments,
+        current_year=current_year
+    )
 
 
 # -----------------------------
