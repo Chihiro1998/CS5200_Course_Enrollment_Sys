@@ -3,6 +3,19 @@
 
 {% block content %}
 
+<!-- Filter Buttons -->
+<div class="mb-3">
+  <a href="{{ url_for('main.course_list', view='active') }}"
+    class="btn btn-primary btn-sm {% if view=='active' %}disabled{% endif %}">
+    Active Courses
+  </a>
+
+  <a href="{{ url_for('main.course_list', view='all') }}"
+    class="btn btn-secondary btn-sm {% if view=='all' %}disabled{% endif %}">
+    All Courses
+  </a>
+</div>
+
 <h2 class="mb-4">Course List</h2>
 
 <a class="btn btn-success mb-3" href="{{ url_for('main.add_course') }}">
@@ -16,13 +29,15 @@
       <th>Name</th>
       <th>Credits</th>
       <th>Enrollment</th>
+      <th>Status</th>
       <th>Actions</th>
     </tr>
   </thead>
 
   <tbody>
     {% for c in courses %}
-    <tr>
+    <tr class="{% if c.status != 'Active' %}table-secondary{% endif %}">
+
       <!-- Course Code -->
       <td>{{ c.course_code }}</td>
 
@@ -32,9 +47,18 @@
       <!-- Credits -->
       <td>{{ c.credits }}</td>
 
-      <!-- Enrollment / Capacity (highlight if full) -->
+      <!-- Enrollment / Capacity -->
       <td class="{% if c.enrolled_count >= c.capacity %}text-danger fw-bold{% endif %}">
         {{ c.enrolled_count }}/{{ c.capacity }}
+      </td>
+
+      <!-- Status column -->
+      <td>
+        {% if c.status == 'Active' %}
+        <span class="badge bg-success">Active</span>
+        {% else %}
+        <span class="badge bg-secondary">Inactive</span>
+        {% endif %}
       </td>
 
       <!-- Actions -->
@@ -43,13 +67,16 @@
 
         <a href="{{ url_for('main.edit_course', course_id=c.course_id) }}" class="btn btn-warning btn-sm">Edit</a>
 
+        {% if c.status == 'Active' %}
         <form action="{{ url_for('main.delete_course', course_id=c.course_id) }}" method="POST" style="display:inline;"
           onsubmit="return confirm('Are you sure you want to delete this course?');">
           <button type="submit" class="btn btn-danger btn-sm">
             Delete
           </button>
         </form>
+        {% endif %}
       </td>
+
     </tr>
     {% endfor %}
   </tbody>

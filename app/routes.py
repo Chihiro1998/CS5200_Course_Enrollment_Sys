@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from .models import get_db_connection
 from datetime import datetime
+from psycopg2.extras import RealDictCursor
 import psycopg2.extras
 
 main = Blueprint("main", __name__)
@@ -138,7 +139,7 @@ def edit_student(student_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    current_year = datetime.now().year  # <-- define once here
+    current_year = datetime.now().year
 
     # -----------------------
     # POST — save changes
@@ -207,22 +208,53 @@ def edit_student(student_id):
         current_year=current_year
     )
 
-
 # -----------------------------
 # Soft Delete Student
 # -----------------------------
+
+
 @main.route("/students/<int:student_id>/delete", methods=["POST"])
 def delete_student(student_id):
+    """
+    Soft delete a student and release course capacity:
+
+    1) Student → Inactive
+    2) All active enrollments (status='Enrolled') → Dropped_Inactive
+    """
+
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute("""
-        UPDATE students SET status='Inactive'
-        WHERE student_id=%s
-    """, (student_id,))
-    conn.commit()
+    try:
+        # 1. Mark student Inactive
+        cur.execute("""
+            UPDATE students
+            SET status='Inactive'
+            WHERE student_id=%s
+        """, (student_id,))
 
-    flash("Student deleted (soft delete).", "success")
+        # 2. Change ENROLLED → DROPPED_INACTIVE
+        cur.execute("""
+            UPDATE enrollments
+            SET status='Dropped_Inactive'
+            WHERE student_id=%s
+              AND status='Enrolled'
+        """, (student_id,))
+
+        # 3. No need to update courses table.
+        # SELECT COUNT(*) WHERE status='Enrolled' will now decrease automatically!
+
+        conn.commit()
+        flash("Student set to Inactive. Enrollments marked Dropped_Inactive.", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash("Failed to delete student: " + str(e), "danger")
+
+    finally:
+        cur.close()
+        conn.close()
+
     return redirect(url_for("main.index"))
 
 
@@ -231,34 +263,43 @@ def delete_student(student_id):
 # ==========================================================
 
 # -----------------------------
-# Course List
+# Course List (Active / All)
 # -----------------------------
 @main.route("/courses")
 def course_list():
+
+    # use 'view' instead of 'mode'
+    view = request.args.get("view", "active")
+
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute("""
-        SELECT 
-            c.course_id,
-            c.course_code,
-            c.course_name,
-            c.credits,
-            c.capacity,
-            (
-                SELECT COUNT(*) FROM enrollments e 
-                WHERE e.course_id = c.course_id AND e.status='Enrolled'
-            ) AS enrolled_count
-        FROM courses c
-        WHERE c.status='Active'
-        ORDER BY c.course_code
-    """)
+    if view == "all":
+        cur.execute("""
+            SELECT c.*,
+                (SELECT COUNT(*) FROM enrollments e 
+                    WHERE e.course_id = c.course_id AND e.status='Enrolled')
+                AS enrolled_count
+            FROM courses c
+            ORDER BY c.course_code
+        """)
+    else:
+        cur.execute("""
+            SELECT c.*,
+                (SELECT COUNT(*) FROM enrollments e 
+                    WHERE e.course_id = c.course_id AND e.status='Enrolled')
+                AS enrolled_count
+            FROM courses c
+            WHERE c.status = 'Active'
+            ORDER BY c.course_code
+        """)
+
     courses = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template("courses.html", courses=courses)
+    return render_template("courses.html", courses=courses, view=view)
 
 
 # -----------------------------
@@ -398,28 +439,84 @@ def edit_course(course_id):
 
     return render_template("course_edit.html", course=course, departments=departments, instructors=instructors)
 
+# -----------------------------
+# Delete Course (redirect to confirm page if needed)
+# -----------------------------
 
-# -----------------------------
-# Soft Delete Course
-# -----------------------------
+
 @main.route("/courses/<int:course_id>/delete", methods=["POST"])
 def delete_course(course_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
-        UPDATE courses SET status='Inactive'
+        SELECT COUNT(*) AS cnt
+        FROM enrollments
+        WHERE course_id = %s AND status = 'Enrolled'
+    """, (course_id,))
+    count = cur.fetchone()["cnt"]
+
+    cur.close()
+    conn.close()
+
+    if count > 0:
+        return redirect(url_for("main.confirm_course_delete",
+                                course_id=course_id,
+                                enrolled=count))
+
+    return force_delete_course(course_id)
+
+# -----------------------------
+# Step 2 — Confirm Delete
+# -----------------------------
+
+
+@main.route("/courses/<int:course_id>/delete/confirm")
+def confirm_course_delete(course_id):
+
+    enrolled = request.args.get("enrolled", 0)
+
+    return render_template(
+        "course_delete_confirm.html",
+        course_id=course_id,
+        enrolled=int(enrolled)
+    )
+
+# -----------------------------
+# Step 3 — FORCE DELETE COURSE
+# -----------------------------
+
+
+@main.route("/courses/<int:course_id>/delete/force", methods=["POST"])
+def force_delete_course(course_id):
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        UPDATE enrollments
+        SET status='Course_Cancelled', grade=NULL
+        WHERE course_id=%s AND status='Enrolled'
+    """, (course_id,))
+
+    cur.execute("""
+        UPDATE courses
+        SET status='Inactive'
         WHERE course_id=%s
     """, (course_id,))
-    conn.commit()
 
-    flash("Course deleted (soft delete).", "warning")
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Course deleted. All enrolled students marked as Course_Cancelled.", "warning")
     return redirect(url_for("main.course_list"))
 
 
 # ==========================================================
 # ENROLLMENT
 # ==========================================================
+
 
 @main.route("/students/<int:student_id>/enroll")
 def enroll_page(student_id):
@@ -532,11 +629,12 @@ def enrollment_list():
     cur.execute("""
         SELECT 
             e.enrollment_id,
-            e.student_id,
-            s.first_name || ' ' || s.last_name AS student_name,
-            e.course_id,
+            s.student_id, 
+            CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+            c.course_id,
             c.course_code,
             c.course_name,
+            c.status AS course_status,
             e.status,
             e.grade
         FROM enrollments e

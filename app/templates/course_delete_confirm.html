@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Confirm Course Delete{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-3 text-danger">Confirm Course Deletion</h2>
+
+<p>
+  This course currently has
+  <strong>{{ enrolled }}</strong> enrolled {{ "student" if enrolled==1 else "students" }}.
+</p>
+
+<p class="text-warning">
+  If you force delete this course:
+</p>
+
+<ul>
+  <li>All active enrollments will be marked as <strong>Course_Cancelled</strong></li>
+  <li>The course will be marked as <strong>Inactive</strong></li>
+  <li>No data will be permanently deleted (soft delete)</li>
+</ul>
+
+<div class="mt-4">
+  <form action="{{ url_for('main.force_delete_course', course_id=course_id) }}" method="POST" style="display:inline;">
+    <button class="btn btn-danger">Force Delete Course</button>
+  </form>
+
+  <a href="{{ url_for('main.course_detail', course_id=course_id) }}" class="btn btn-secondary ms-2">
+    Cancel
+  </a>
+</div>
+
+{% endblock %}
