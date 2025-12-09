@@ -1,5 +1,8 @@
 # CS5200_Course_Enrollment_Sys
 
+**Author:** Yuchen Kuang
+**Date:** 12/09/2025
+
 A web-based course enrollment management application built with Flask and PostgreSQL.  
 This system supports student management, course management, enrollment tracking, soft deletion logic, and capacity control through database triggers.
 
