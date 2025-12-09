@@ -180,10 +180,10 @@ Open the application in browser: http://127.0.0.1:5000
 ## 8. Future Improvements
 
 - Add authentication (Admin, Instructor, Student)
-  -Add student transcript generation
-  -Add instructor course assignment interface
-  -Add pagination for large datasets
-  -Add CSV export/import
-  -Add automated tests (unit + integration)
+- Add student transcript generation
+- Add instructor course assignment interface
+- Add pagination for large datasets
+- Add CSV export/import
+- Add automated tests (unit + integration)
 
 ---
