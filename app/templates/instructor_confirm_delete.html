@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Confirm Instructor Delete{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-3 text-danger">Confirm Instructor Deletion</h2>
+
+<p>
+  You are about to delete instructor
+  <strong>{{ instructor.first_name }} {{ instructor.last_name }}</strong>.
+</p>
+
+<p>
+  This instructor currently teaches
+  <strong>{{ course_count }}</strong> active {{ "course" if course_count == 1 else "courses" }}
+  with a total of
+  <strong>{{ enrollment_count }}</strong> active {{ "enrollment" if enrollment_count == 1 else "enrollments" }}.
+</p>
+
+<p class="text-warning">
+  If you confirm delete:
+</p>
+
+<ul>
+  <li>The instructor will be marked as <strong>Inactive</strong>.</li>
+  <li>All their active courses will be marked as <strong>Inactive</strong>.</li>
+  <li>All <strong>Enrolled</strong> enrollments in those courses will be marked as <strong>Course_Cancelled</strong>.
+  </li>
+</ul>
+
+<div class="mt-4">
+  <form action="{{ url_for('main.delete_instructor', instructor_id=instructor_id) }}" method="POST"
+    style="display:inline;">
+    <button class="btn btn-danger">
+      Confirm Delete Instructor
+    </button>
+  </form>
+
+  <a href="{{ url_for('main.instructor_detail', instructor_id=instructor_id) }}" class="btn btn-secondary ms-2">
+    Cancel
+  </a>
+</div>
+
+{% endblock %}

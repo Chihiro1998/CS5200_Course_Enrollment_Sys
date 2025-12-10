@@ -776,97 +776,128 @@ def instructor_detail(instructor_id):
         courses=courses
     )
 
-# -----------------------------------------------------------
-# Confirm Delete Instructor
-# -----------------------------------------------------------
+
+# -----------------------------
+# Confirm delete instructor
+# -----------------------------
 
 
-@main.route("/instructors/<int:instructor_id>/delete", methods=["GET"])
+@main.route("/instructors/<int:instructor_id>/confirm_delete")
 def confirm_delete_instructor(instructor_id):
-
     conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Instructor info
+    # basic instructor info
     cur.execute("""
-        SELECT instructor_id, first_name, last_name, status
+        SELECT first_name, last_name
         FROM instructors
         WHERE instructor_id = %s
     """, (instructor_id,))
     instructor = cur.fetchone()
 
     if not instructor:
+        cur.close()
+        conn.close()
         flash("Instructor not found.", "danger")
         return redirect(url_for("main.instructor_list"))
 
-    # Count how many courses they teach
+    # count active courses taught by this instructor
     cur.execute("""
-        SELECT COUNT(*) AS cnt
+        SELECT COUNT(*) AS course_count
         FROM courses
-        WHERE instructor_id = %s AND status = 'Active'
+        WHERE instructor_id = %s
+          AND status = 'Active'
     """, (instructor_id,))
-    result = cur.fetchone()
-    course_count = result["cnt"]
+    course_count = cur.fetchone()["course_count"]
+
+    # count active enrollments in those courses
+    cur.execute("""
+        SELECT COUNT(*) AS enrollment_count
+        FROM enrollments e
+        JOIN courses c ON e.course_id = c.course_id
+        WHERE c.instructor_id = %s
+          AND c.status = 'Active'
+          AND e.status = 'Enrolled'
+    """, (instructor_id,))
+    enrollment_count = cur.fetchone()["enrollment_count"]
 
     cur.close()
     conn.close()
 
     return render_template(
-        "instructor_delete_confirm.html",
+        "instructor_confirm_delete.html",
+        instructor_id=instructor_id,
         instructor=instructor,
-        course_count=course_count
+        course_count=course_count,
+        enrollment_count=enrollment_count,
     )
 
 
-# -----------------------------------------------------------
-# Perform Delete Instructor (soft delete + cascade delete courses)
-# -----------------------------------------------------------
+# -----------------------------
+# Delete Instructor (soft delete with cascading)
+# -----------------------------
 @main.route("/instructors/<int:instructor_id>/delete", methods=["POST"])
 def delete_instructor(instructor_id):
-
     conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # 1. Get all courses taught by the instructor
-    cur.execute("""
-        SELECT course_id
-        FROM courses
-        WHERE instructor_id = %s AND status = 'Active'
-    """, (instructor_id,))
-    courses = cur.fetchall()
-
-    # 2. Soft delete instructor
-    cur.execute("""
-        UPDATE instructors
-        SET status = 'Inactive'
-        WHERE instructor_id = %s
-    """, (instructor_id,))
-
-    # 3. For each course → perform FORCE course delete logic
-    for c in courses:
-        course_id = c["course_id"]
-
-        # A. Cancel enrollments
+    try:
+        # 1. mark instructor as Inactive
         cur.execute("""
-            UPDATE enrollments
-            SET status = 'Course_Cancelled'
-            WHERE course_id = %s AND status = 'Enrolled'
-        """, (course_id,))
-
-        # B. Soft delete course
-        cur.execute("""
-            UPDATE courses
+            UPDATE instructors
             SET status = 'Inactive'
-            WHERE course_id = %s
-        """, (course_id,))
+            WHERE instructor_id = %s
+        """, (instructor_id,))
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        # 2. collect all active courses taught by this instructor
+        cur.execute("""
+            SELECT course_id
+            FROM courses
+            WHERE instructor_id = %s
+              AND status = 'Active'
+        """, (instructor_id,))
+        course_rows = cur.fetchall()
+        course_ids = [row["course_id"] for row in course_rows]
 
-    flash("Instructor deleted and related courses were force-deleted.", "success")
+        cancelled_enrollments = 0
+
+        if course_ids:
+            # 3. mark those courses as Inactive
+            cur.execute("""
+                UPDATE courses
+                SET status = 'Inactive'
+                WHERE course_id = ANY(%s)
+            """, (course_ids,))
+
+            # 4. mark active enrollments in those courses as Course_Cancelled
+            cur.execute("""
+                UPDATE enrollments
+                SET status = 'Course_Cancelled'
+                WHERE course_id = ANY(%s)
+                  AND status = 'Enrolled'
+            """, (course_ids,))
+            cancelled_enrollments = cur.rowcount
+
+        conn.commit()
+
+        msg = "Instructor deleted (soft delete)."
+        if course_ids:
+            msg += f" {len(course_ids)} active course(s) were inactivated"
+            if cancelled_enrollments:
+                msg += f" and {cancelled_enrollments} active enrollment(s) were marked as Course_Cancelled."
+            else:
+                msg += "."
+        flash(msg, "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash("Error deleting instructor. Please try again.", "danger")
+
+    finally:
+        cur.close()
+        conn.close()
+
     return redirect(url_for("main.instructor_list"))
-
 
 # -----------------------------
 # Enrollment List (GLOBAL)

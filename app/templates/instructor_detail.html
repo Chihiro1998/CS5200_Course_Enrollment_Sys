@@ -5,6 +5,9 @@
 
 <h2 class="mb-3">
   {{ instructor.first_name }} {{ instructor.last_name }}
+  {% if instructor.status == 'Inactive' %}
+  <span class="badge bg-secondary ms-2">Inactive</span>
+  {% endif %}
 </h2>
 
 <ul class="list-group mb-4">
@@ -21,14 +24,8 @@
     <strong>Department:</strong> {{ instructor.department_name }}
   </li>
 
-  <!-- NEW: Instructor Status -->
   <li class="list-group-item">
-    <strong>Status:</strong>
-    {% if instructor.status == 'Active' %}
-    <span class="badge bg-success">Active</span>
-    {% else %}
-    <span class="badge bg-secondary">Inactive</span>
-    {% endif %}
+    <strong>Status:</strong> {{ instructor.status }}
   </li>
 
 </ul>
@@ -39,10 +36,10 @@
   </a>
 
   {% if instructor.status == 'Active' %}
-  <form action="{{ url_for('main.delete_instructor', instructor_id=instructor.instructor_id) }}" method="POST"
-    style="display:inline;">
-    <button class="btn btn-danger ms-2">Delete</button>
-  </form>
+  <a href="{{ url_for('main.confirm_delete_instructor', instructor_id=instructor.instructor_id) }}"
+    class="btn btn-danger ms-2">
+    Delete
+  </a>
   {% endif %}
 
   <a href="{{ url_for('main.instructor_list') }}" class="btn btn-secondary ms-2">
