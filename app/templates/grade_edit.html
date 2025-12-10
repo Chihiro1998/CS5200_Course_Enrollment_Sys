@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Update Grade{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-3">Update Grade</h2>
+
+<p>
+  <strong>Student:</strong> {{ enrollment.student_name }} <br>
+  <strong>Course:</strong> {{ enrollment.course_code }} - {{ enrollment.course_name }}
+</p>
+
+<form method="POST">
+
+  <label class="form-label">Grade</label>
+  <select name="grade" class="form-select" required>
+    <option value="">-- Select Grade --</option>
+    {% for g in ["A", "A-", "B+", "B", "B-", "C+", "C", "D", "F"] %}
+    <option value="{{ g }}" {% if enrollment.grade == g %}selected{% endif %}>{{ g }}</option>
+    {% endfor %}
+  </select>
+
+  <button class="btn btn-primary mt-3">Save</button>
+
+  <a href="{{ url_for('main.enrollment_list') }}" class="btn btn-secondary mt-3">Cancel</a>
+</form>
+
+{% endblock %}

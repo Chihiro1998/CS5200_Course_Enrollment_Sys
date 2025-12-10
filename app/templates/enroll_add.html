@@ -24,7 +24,8 @@
         {% for c in courses %}
         <option value="{{ c.course_id }}">
           {{ c.course_code }} - {{ c.course_name }}
-          (Credits: {{ c.credits }}, {{ c.enrolled }}/{{ c.capacity }} enrolled)
+          (Credits: {{ c.credits }}, {{ c.enrolled_count }}/{{ c.capacity }} enrolled)
+
         </option>
         {% endfor %}
       </select>

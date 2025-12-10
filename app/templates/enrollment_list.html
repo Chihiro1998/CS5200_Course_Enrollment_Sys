@@ -6,6 +6,18 @@
 
 <h2 class="mb-3">Enrollment Records</h2>
 
+<div class="mb-3">
+  <a href="{{ url_for('main.enrollment_list', view='active') }}"
+    class="btn btn-primary btn-sm {% if view=='active' %}disabled{% endif %}">
+    Active Enrollments
+  </a>
+
+  <a href="{{ url_for('main.enrollment_list', view='all') }}"
+    class="btn btn-secondary btn-sm {% if view=='all' %}disabled{% endif %}">
+    All Enrollments
+  </a>
+</div>
+
 <table class="table table-striped table-bordered">
   <thead class="table-dark">
     <tr>
@@ -13,7 +25,9 @@
       <th>Student</th>
       <th>Course</th>
       <th>Status</th>
+      <th>Semester</th>
       <th>Grade</th>
+      <th>Actions</th>
     </tr>
   </thead>
 
@@ -40,8 +54,29 @@
       <!-- Enrollment Status -->
       <td>{{ e.status }}</td>
 
+      <td>{{ e.term }} {{ e.year }}</td>
+
       <!-- Grade -->
       <td>{{ e.grade if e.grade else '-' }}</td>
+
+      <!-- Actions -->
+      <td>
+        {% if e.status == 'Completed' %}
+        <a href="{{ url_for('main.grade_enrollment', enrollment_id=e.enrollment_id) }}" class="btn btn-sm btn-warning">
+          Edit Grade
+        </a>
+        {% elif e.status == 'Enrolled' %}
+        <a href="{{ url_for('main.grade_enrollment', enrollment_id=e.enrollment_id) }}" class="btn btn-sm btn-primary">
+          Add Grade
+        </a>
+        {% else %}
+        <!-- No actions -->
+        -
+        {% endif %}
+      </td>
+
+
+
     </tr>
     {% endfor %}
   </tbody>

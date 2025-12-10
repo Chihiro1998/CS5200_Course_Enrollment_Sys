@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Delete Instructor{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">Delete Instructor</h2>
+
+<div class="alert alert-warning">
+  <p><strong>{{ instructor.first_name }} {{ instructor.last_name }}</strong> teaches
+    <strong>{{ course_count }}</strong> course(s).</p>
+
+  {% if course_count > 0 %}
+  <p>Deleting this instructor will soft-delete all their courses and cancel all active enrollments.</p>
+  {% endif %}
+
+  <p>Are you sure you want to continue?</p>
+</div>
+
+<form method="POST">
+  <button class="btn btn-danger">Yes, Delete Instructor</button>
+
+  <a href="{{ url_for('main.instructor_detail', instructor_id=instructor.instructor_id) }}"
+    class="btn btn-secondary ms-2">
+    Cancel
+  </a>
+</form>
+
+{% endblock %}

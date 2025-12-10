@@ -65,6 +65,7 @@
       <th>Student ID</th>
       <th>Name</th>
       <th>Status</th>
+      <th>Semester</th>
       <th>Grade</th>
     </tr>
   </thead>
@@ -81,6 +82,8 @@
       </td>
 
       <td>{{ e.status }}</td>
+
+      <td>{{ e.term }} {{ e.year }}</td>
 
       <td>{{ e.grade if e.grade else '-' }}</td>
     </tr>

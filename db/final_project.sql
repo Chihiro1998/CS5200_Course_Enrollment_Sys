@@ -37,7 +37,8 @@ CREATE TABLE instructors (
     email           VARCHAR(120) NOT NULL UNIQUE,
     phone           VARCHAR(20),
     title           VARCHAR(50),
-    hire_date       DATE
+    hire_date       DATE,
+    status          VARCHAR(20) NOT NULL DEFAULT 'Active'
 );
 
 ------------------------------------------------------------

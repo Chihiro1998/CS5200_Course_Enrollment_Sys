@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Add Instructor{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">Add New Instructor</h2>
+
+<form method="POST">
+
+  <!-- First Name -->
+  <div class="mb-3">
+    <label class="form-label">First Name</label>
+    <input type="text" name="first_name" class="form-control" required>
+  </div>
+
+  <!-- Last Name -->
+  <div class="mb-3">
+    <label class="form-label">Last Name</label>
+    <input type="text" name="last_name" class="form-control" required>
+  </div>
+
+  <!-- Email -->
+  <div class="mb-3">
+    <label class="form-label">Email</label>
+    <input type="email" name="email" class="form-control" required>
+  </div>
+
+  <!-- Title -->
+  <div class="mb-3">
+    <label class="form-label">Title</label>
+    <input type="text" name="title" class="form-control">
+  </div>
+
+
+  <!-- Department -->
+  <div class="mb-3">
+    <label class="form-label">Department</label>
+    <select name="department_id" class="form-select" required>
+      <option value="">-- Select Department --</option>
+      {% for d in departments %}
+      <option value="{{ d.department_id }}">
+        {{ d.department_name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Submit + Cancel -->
+  <button type="submit" class="btn btn-success">Add Instructor</button>
+
+  <a href="{{ url_for('main.instructor_list') }}" class="btn btn-secondary ms-2">
+    Cancel
+  </a>
+
+</form>
+
+{% endblock %}

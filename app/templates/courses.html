@@ -3,6 +3,12 @@
 
 {% block content %}
 
+<h2 class="mb-4">Course List</h2>
+
+<a class="btn btn-success mb-3" href="{{ url_for('main.add_course') }}">
+  + Add New Course
+</a>
+
 <!-- Filter Buttons -->
 <div class="mb-3">
   <a href="{{ url_for('main.course_list', view='active') }}"
@@ -15,12 +21,6 @@
     All Courses
   </a>
 </div>
-
-<h2 class="mb-4">Course List</h2>
-
-<a class="btn btn-success mb-3" href="{{ url_for('main.add_course') }}">
-  + Add New Course
-</a>
 
 <table class="table table-bordered table-striped">
   <thead class="table-dark">

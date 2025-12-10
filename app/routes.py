@@ -333,11 +333,15 @@ def course_detail(course_id):
     cur.execute("""
         SELECT s.student_id, 
                s.first_name || ' ' || s.last_name AS student_name,
-               e.status, e.grade
+               e.status,
+               e.grade,
+               sm.term,
+               sm.year
         FROM enrollments e
         JOIN students s ON e.student_id = s.student_id
+        JOIN semesters sm ON e.semester_id = sm.semester_id
         WHERE e.course_id=%s
-        ORDER BY s.student_id
+        ORDER BY sm.year DESC, sm.term DESC, s.student_id
     """, (course_id,))
     enrollments = cur.fetchall()
 
@@ -379,9 +383,10 @@ def add_course():
     cur.execute("SELECT * FROM departments ORDER BY department_name")
     departments = cur.fetchall()
 
-    # load instructors
+    # load instructors WITH full name
     cur.execute("""
-        SELECT instructor_id, first_name, last_name 
+        SELECT instructor_id,
+               first_name || ' ' || last_name AS instructor_name
         FROM instructors
         ORDER BY last_name
     """)
@@ -617,34 +622,342 @@ def enroll_submit(student_id):
         cur.close()
         conn.close()
 
+# -----------------------------
+# Instructors List
+# -----------------------------
+
+
+@main.route("/instructors")
+def instructor_list():
+    view = request.args.get("view", "active")  # add filter toggle
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    if view == "all":
+        cur.execute("""
+            SELECT i.instructor_id, i.first_name, i.last_name, 
+                   i.email, i.title, i.status,
+                   d.department_name
+            FROM instructors i
+            JOIN departments d ON i.department_id = d.department_id
+            ORDER BY i.last_name
+        """)
+    else:
+        cur.execute("""
+            SELECT i.instructor_id, i.first_name, i.last_name, 
+                   i.email, i.title, i.status,
+                   d.department_name
+            FROM instructors i
+            JOIN departments d ON i.department_id = d.department_id
+            WHERE i.status = 'Active'
+            ORDER BY i.last_name
+        """)
+
+    instructors = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("instructor_list.html", instructors=instructors, view=view)
+
+
+@main.route("/instructors/add", methods=["GET", "POST"])
+def add_instructor():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    if request.method == "POST":
+        dept = request.form["department_id"]
+        first = request.form["first_name"]
+        last = request.form["last_name"]
+        email = request.form["email"]
+        title = request.form["title"]
+
+        cur.execute("""
+            INSERT INTO instructors (department_id, first_name, last_name, email, title)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (dept, first, last, email, title))
+
+        conn.commit()
+        flash("Instructor added successfully!", "success")
+        return redirect(url_for("main.instructor_list"))
+
+    cur.execute("SELECT department_id, department_name FROM departments")
+    departments = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("instructor_add.html", departments=departments)
+
+
+@main.route("/instructors/<int:instructor_id>/edit", methods=["GET", "POST"])
+def edit_instructor(instructor_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    if request.method == "POST":
+        dept = request.form["department_id"]
+        first = request.form["first_name"]
+        last = request.form["last_name"]
+        email = request.form["email"]
+        title = request.form["title"]
+
+        cur.execute("""
+            UPDATE instructors
+            SET department_id=%s, first_name=%s, last_name=%s, email=%s, title=%s
+            WHERE instructor_id=%s
+        """, (dept, first, last, email, title, instructor_id))
+
+        conn.commit()
+        flash("Instructor updated!", "success")
+        return redirect(url_for("main.instructor_list"))
+
+    cur.execute("""
+        SELECT * FROM instructors WHERE instructor_id=%s
+    """, (instructor_id,))
+    instructor = cur.fetchone()
+
+    cur.execute("SELECT department_id, department_name FROM departments")
+    departments = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "instructor_edit.html", instructor=instructor, departments=departments
+    )
+
+
+@main.route("/instructors/<int:instructor_id>")
+def instructor_detail(instructor_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT i.*, d.department_name 
+        FROM instructors i
+        JOIN departments d ON i.department_id = d.department_id
+        WHERE instructor_id = %s
+    """, (instructor_id,))
+    instructor = cur.fetchone()
+
+    if not instructor:
+        cur.close()
+        conn.close()
+        flash("Instructor not found.", "danger")
+        return redirect(url_for("main.instructor_list"))
+
+    cur.execute("""
+        SELECT 
+            c.course_id,
+            c.course_code,
+            c.course_name,
+            c.status,
+            c.capacity,
+            (
+                SELECT COUNT(*) 
+                FROM enrollments e
+                WHERE e.course_id = c.course_id
+                  AND e.status = 'Enrolled'
+            ) AS enrolled_count
+        FROM courses c
+        WHERE c.instructor_id = %s
+        ORDER BY c.course_code
+    """, (instructor_id,))
+    courses = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "instructor_detail.html",
+        instructor=instructor,
+        courses=courses
+    )
+
+# -----------------------------------------------------------
+# Confirm Delete Instructor
+# -----------------------------------------------------------
+
+
+@main.route("/instructors/<int:instructor_id>/delete", methods=["GET"])
+def confirm_delete_instructor(instructor_id):
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    # Instructor info
+    cur.execute("""
+        SELECT instructor_id, first_name, last_name, status
+        FROM instructors
+        WHERE instructor_id = %s
+    """, (instructor_id,))
+    instructor = cur.fetchone()
+
+    if not instructor:
+        flash("Instructor not found.", "danger")
+        return redirect(url_for("main.instructor_list"))
+
+    # Count how many courses they teach
+    cur.execute("""
+        SELECT COUNT(*) AS cnt
+        FROM courses
+        WHERE instructor_id = %s AND status = 'Active'
+    """, (instructor_id,))
+    result = cur.fetchone()
+    course_count = result["cnt"]
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "instructor_delete_confirm.html",
+        instructor=instructor,
+        course_count=course_count
+    )
+
+
+# -----------------------------------------------------------
+# Perform Delete Instructor (soft delete + cascade delete courses)
+# -----------------------------------------------------------
+@main.route("/instructors/<int:instructor_id>/delete", methods=["POST"])
+def delete_instructor(instructor_id):
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    # 1. Get all courses taught by the instructor
+    cur.execute("""
+        SELECT course_id
+        FROM courses
+        WHERE instructor_id = %s AND status = 'Active'
+    """, (instructor_id,))
+    courses = cur.fetchall()
+
+    # 2. Soft delete instructor
+    cur.execute("""
+        UPDATE instructors
+        SET status = 'Inactive'
+        WHERE instructor_id = %s
+    """, (instructor_id,))
+
+    # 3. For each course → perform FORCE course delete logic
+    for c in courses:
+        course_id = c["course_id"]
+
+        # A. Cancel enrollments
+        cur.execute("""
+            UPDATE enrollments
+            SET status = 'Course_Cancelled'
+            WHERE course_id = %s AND status = 'Enrolled'
+        """, (course_id,))
+
+        # B. Soft delete course
+        cur.execute("""
+            UPDATE courses
+            SET status = 'Inactive'
+            WHERE course_id = %s
+        """, (course_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Instructor deleted and related courses were force-deleted.", "success")
+    return redirect(url_for("main.instructor_list"))
+
 
 # -----------------------------
 # Enrollment List (GLOBAL)
 # -----------------------------
+
+
 @main.route("/enrollments")
 def enrollment_list():
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    view = request.args.get("view", "active")  # default to active
 
-    cur.execute("""
-        SELECT 
-            e.enrollment_id,
-            s.student_id, 
-            CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-            c.course_id,
-            c.course_code,
-            c.course_name,
-            c.status AS course_status,
-            e.status,
-            e.grade
-        FROM enrollments e
-        JOIN students s ON e.student_id = s.student_id
-        JOIN courses c ON e.course_id = c.course_id
-        ORDER BY e.enrollment_id;
-    """)
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    if view == "all":
+        # ALL enrollments (include inactive students/courses)
+        cur.execute("""
+            SELECT e.enrollment_id, e.student_id, 
+                   s.first_name || ' ' || s.last_name AS student_name,
+                   e.course_id, c.course_code, c.course_name,
+                   e.status, e.grade,
+                   sm.term, sm.year
+            FROM enrollments e
+            JOIN students s ON e.student_id = s.student_id
+            JOIN courses c ON e.course_id = c.course_id
+            JOIN semesters sm ON e.semester_id = sm.semester_id
+            ORDER BY e.enrollment_id ASC
+        """)
+    else:
+        # ACTIVE enrollments only
+        cur.execute("""
+            SELECT e.enrollment_id, e.student_id,
+                   s.first_name || ' ' || s.last_name AS student_name,
+                   e.course_id, c.course_code, c.course_name,
+                   e.status, e.grade,
+                   sm.term, sm.year
+            FROM enrollments e
+            JOIN students s ON e.student_id = s.student_id
+            JOIN courses c ON e.course_id = c.course_id
+            JOIN semesters sm ON e.semester_id = sm.semester_id
+            WHERE e.status = 'Enrolled'
+              AND s.status = 'Active'
+              AND c.status = 'Active'
+            ORDER BY e.enrollment_id ASC
+        """)
 
     enrollments = cur.fetchall()
     cur.close()
     conn.close()
 
-    return render_template("enrollment_list.html", enrollments=enrollments)
+    return render_template("enrollment_list.html", enrollments=enrollments, view=view)
+
+
+# -----------------------------
+# Grade Enrollment
+# -----------------------------
+@main.route("/enrollments/<int:enrollment_id>/grade", methods=["GET", "POST"])
+def grade_enrollment(enrollment_id):
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    if request.method == "POST":
+        grade = request.form["grade"]
+
+        cur.execute("""
+            UPDATE enrollments
+            SET grade = %s, status = 'Completed'
+            WHERE enrollment_id = %s
+        """, (grade, enrollment_id))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Grade updated successfully!", "success")
+        return redirect(url_for("main.enrollment_list"))
+
+    # GET — load enrollment info
+    cur.execute("""
+        SELECT e.*, 
+               s.first_name || ' ' || s.last_name AS student_name,
+               c.course_code, c.course_name
+        FROM enrollments e
+        JOIN students s ON e.student_id = s.student_id
+        JOIN courses c ON e.course_id = c.course_id
+        WHERE enrollment_id = %s
+    """, (enrollment_id,))
+
+    enrollment = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return render_template("grade_edit.html", enrollment=enrollment)
